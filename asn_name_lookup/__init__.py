@@ -1,6 +1,6 @@
 __author__ = 'secastro'
 
-from twisted.names import client
+from twisted.names import client, error
 from twisted.internet import reactor
 from twisted.internet import defer, task
 
@@ -24,19 +24,26 @@ class AsnNameLookupService:
         if answers:
             for x in answers:
                 try:
-                    [asn_, country, rir, date, descr ] = str(x.payload.data[0]).split(' | ')
+                    [asn_, country, rir, date, descr] = str(x.payload.data[0]).split(' | ')
                     short_descr = descr.split(' ', 1)[0]
-                    long_descr  = ' '.join(descr.split(' ')[1:])
+                    long_descr = ' '.join(descr.split(' ')[1:])
                     self.as_info[asn_] = dict(country=country,
-                                              short_descr=short_descr, long_descr=long_descr)
+                                              short_descr=short_descr,
+                                              long_descr=long_descr)
                 except ValueError:
-                    self.as_info[asn] = dict(country='??', short_descr='NO INFO',
+                    self.as_info[asn] = dict(country='??',
+                                             short_descr='NO INFO',
                                              long_descr='NO INFO')
+
+    def _handle_dns_error(self, failure, name, asn):
+        failure.trap(error.DNSNameError)
+        self.as_info[asn] = dict(country="??", short_descr='NO INFO', long_descr='NO INFO')
 
     def _send_dns_query(self, entry):
         [name, asn] = entry
         d = self.resolver.lookupText(name)
         d.addCallback(self._receive_dns_response, name, asn)
+        d.addErrback(self._handle_dns_error, name, asn)
         return d
 
     def _do_parallel_dns(self):
