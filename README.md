@@ -1,7 +1,15 @@
 # ASN Lookup Service
 
-Uses the DNS-based service by Team Cymru to collect information about
+Uses the DNS-based service by
+(http://www.team-cymru.org/IP-ASN-mapping.html)[Team Cymru] to collect information about
 Autonomous Service Numbers used in BGP.
+
+For each ASN it will execute the following DNS query against the local
+DNS resolver
+
+```
+dig TXT as<ASN>.asn.cymru.com
+```
 
 ## Installation
 
